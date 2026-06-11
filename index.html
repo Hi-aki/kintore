@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="筋トレ記録">
+<meta name="theme-color" content="#0f1115">
+<title>筋トレ記録</title>
+<style>
+:root{
+  --bg:#0f1115; --card:#1a1d24; --card2:#22262f; --line:#2c313c;
+  --text:#e9ecf1; --sub:#8b93a3; --accent:#3b82f6; --accent2:#2563eb;
+  --green:#22c55e; --red:#ef4444; --orange:#f59e0b;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;}
+body{padding-bottom:70px;}
+h1,h2,h3{margin:0;}
+button{font-family:inherit;}
+input,select{font-family:inherit; background:var(--card2); border:1px solid var(--line);
+  color:var(--text); border-radius:8px; padding:8px 10px; font-size:15px; outline:none;}
+input:focus{border-color:var(--accent);}
+input::placeholder{color:#5a6170;}
+
+/* header */
+.header{position:sticky; top:0; z-index:50; background:rgba(15,17,21,.92);
+  backdrop-filter:blur(8px); padding:14px 16px; display:flex; align-items:center;
+  justify-content:space-between; border-bottom:1px solid var(--line);}
+.header h1{font-size:19px;}
+
+/* tabs */
+.tab{display:none; padding:16px; max-width:560px; margin:0 auto;}
+.tab.on{display:block;}
+.nav{position:fixed; bottom:0; left:0; right:0; z-index:60; display:flex;
+  background:#14171d; border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom);}
+.nav button{flex:1; background:none; border:none; color:var(--sub); padding:8px 0 9px;
+  font-size:10.5px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px;}
+.nav button .ic{font-size:19px; line-height:1;}
+.nav button.on{color:var(--accent);}
+
+/* cards / common */
+.card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:14px; margin-bottom:12px;}
+.btn{display:block; width:100%; background:var(--accent); color:#fff; border:none;
+  border-radius:12px; padding:14px; font-size:16px; font-weight:700; cursor:pointer;}
+.btn:active{background:var(--accent2);}
+.btn.ghost{background:var(--card2); color:var(--text); border:1px solid var(--line); font-weight:600;}
+.btn.sm{padding:9px; font-size:14px; border-radius:10px;}
+.btn.red{background:transparent; color:var(--red); border:1px solid var(--red); font-weight:600;}
+.row{display:flex; gap:10px; align-items:center;}
+.grow{flex:1;}
+.sub{color:var(--sub); font-size:13px;}
+.title{font-size:16px; font-weight:700;}
+.sec{font-size:13px; font-weight:700; color:var(--sub); margin:18px 0 8px; letter-spacing:.04em;}
+.chip{display:inline-block; background:var(--card2); border:1px solid var(--line);
+  color:var(--sub); border-radius:999px; padding:5px 12px; font-size:13px; cursor:pointer;}
+.chip.on{background:var(--accent); border-color:var(--accent); color:#fff;}
+.empty{text-align:center; color:var(--sub); padding:36px 12px; font-size:14px;}
+.statgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px;}
+.statbox{background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:12px 8px; text-align:center;}
+.statbox .v{font-size:20px; font-weight:800;}
+.statbox .l{font-size:11px; color:var(--sub); margin-top:3px;}
+.linkrow{display:flex; justify-content:space-between; align-items:center; padding:13px 2px;
+  border-bottom:1px solid var(--line); cursor:pointer;}
+.linkrow:last-child{border-bottom:none;}
+.iconbtn{background:none; border:none; color:var(--sub); font-size:18px; cursor:pointer; padding:4px 8px;}
+
+/* workout screen */
+#woScreen{display:none; position:fixed; inset:0; z-index:100; background:var(--bg); overflow-y:auto;
+  padding-bottom:140px;}
+#woScreen.on{display:block;}
+.wo-head{position:sticky; top:0; z-index:10; background:rgba(15,17,21,.95); backdrop-filter:blur(8px);
+  padding:12px 16px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px;}
+.wo-timer{font-variant-numeric:tabular-nums; color:var(--accent); font-weight:700; font-size:15px;}
+.wo-body{max-width:560px; margin:0 auto; padding:14px 14px 0;}
+.ex-card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:12px; margin-bottom:12px;}
+.ex-name{color:var(--accent); font-weight:700; font-size:15.5px;}
+.sethead,.setrow{display:grid; grid-template-columns:34px 1fr 1.1fr 1.1fr 42px; gap:8px;
+  align-items:center; text-align:center;}
+.sethead{color:var(--sub); font-size:11.5px; margin:10px 0 4px; font-weight:600;}
+.setrow{margin-bottom:6px;}
+.setrow input{width:100%; text-align:center; padding:8px 4px; font-size:15px; font-weight:600;}
+.setno{color:var(--sub); font-weight:700; font-size:14px;}
+.prev{color:#5a6170; font-size:12.5px; overflow:hidden; white-space:nowrap;}
+.done-btn{width:34px; height:34px; margin:0 auto; border-radius:9px; border:1px solid var(--line);
+  background:var(--card2); color:var(--sub); font-size:16px; cursor:pointer;}
+.setrow.done input{color:var(--green);}
+.setrow.done .done-btn{background:var(--green); border-color:var(--green); color:#fff;}
+.addset{background:none; border:none; color:var(--accent); font-weight:700; font-size:14px;
+  padding:8px 0 2px; cursor:pointer;}
+
+/* rest timer */
+#rest{display:none; position:fixed; left:12px; right:12px; bottom:84px; z-index:120;
+  background:#1d2a44; border:1px solid var(--accent); border-radius:14px; padding:10px 14px;
+  align-items:center; gap:12px;}
+#rest.on{display:flex;}
+#rest .t{font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--accent);}
+#rest button{background:var(--card2); border:1px solid var(--line); color:var(--text);
+  border-radius:9px; padding:7px 12px; font-size:13px; font-weight:700; cursor:pointer;}
+
+/* modal */
+.modal-bg{display:none; position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.6);}
+.modal-bg.on{display:flex; align-items:flex-end; justify-content:center;}
+.modal{background:var(--card); width:100%; max-width:560px; max-height:86vh; overflow-y:auto;
+  border-radius:18px 18px 0 0; padding:16px; border:1px solid var(--line);}
+.modal h2{font-size:17px; margin-bottom:12px;}
+.wo-foot{position:fixed; bottom:0; left:0; right:0; z-index:110; background:#14171d;
+  border-top:1px solid var(--line); padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  display:none; gap:10px;}
+#woScreen.on ~ .wo-foot{display:flex;}
+.pill{font-size:12px; background:var(--card2); border-radius:999px; padding:3px 9px; color:var(--sub);}
+svg text{font-family:inherit;}
+.hist-detail{display:none; margin-top:10px; border-top:1px solid var(--line); padding-top:10px;}
+.hist-detail.on{display:block;}
+.rec-table{width:100%; font-size:14px; border-collapse:collapse;}
+.rec-table td{padding:6px 4px; border-bottom:1px solid var(--line);}
+.rec-table td:last-child{text-align:right; font-weight:600;}
+</style>
+</head>
+<body>
+<div class="header"><h1 id="pageTitle">ホーム</h1>
+  <div class="row">
+    <button class="iconbtn" id="cloudBtn" onclick="openCloud()" title="同期設定">☁︎</button>
+    <button class="iconbtn" onclick="exportData()" title="エクスポート">⬇︎</button>
+    <button class="iconbtn" onclick="document.getElementById('importFile').click()" title="インポート">⬆︎</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
+  </div>
+</div>
+
+<!-- ホーム -->
+<div class="tab on" id="tab-home">
+  <div id="homeStats" class="statgrid"></div>
+  <button class="btn" onclick="startWorkout()">＋ 空のワークアウトを開始</button>
+  <div class="sec">ルーティンから開始</div>
+  <div id="homeRoutines"></div>
+  <div class="sec">最近のワークアウト</div>
+  <div id="homeRecent"></div>
+</div>
+
+<!-- 履歴 -->
+<div class="tab" id="tab-history">
+  <div id="histList"></div>
+</div>
+
+<!-- 統計 -->
+<div class="tab" id="tab-stats">
+  <div id="statsTop" class="statgrid"></div>
+  <div class="card"><div class="title" style="margin-bottom:8px">ワークアウトボリューム推移</div>
+    <div id="volChart"></div></div>
+  <div class="card"><div class="title" style="margin-bottom:8px">種目別 推定1RM推移</div>
+    <select id="exSelect" style="width:100%; margin-bottom:8px" onchange="renderStats()"></select>
+    <div id="rmChart"></div></div>
+</div>
+
+<!-- 種目 -->
+<div class="tab" id="tab-exercises">
+  <div class="row" style="margin-bottom:10px">
+    <input class="grow" id="exSearch" placeholder="種目を検索" oninput="renderExercises()">
+    <button class="btn sm" style="width:auto; padding:9px 14px" onclick="addCustomExercise()">＋追加</button>
+  </div>
+  <div id="groupChips" style="margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap"></div>
+  <div class="card" id="exList"></div>
+</div>
+
+<!-- ルーティン -->
+<div class="tab" id="tab-routines">
+  <button class="btn ghost" onclick="openRoutineEditor()">＋ 新しいルーティンを作成</button>
+  <div style="height:12px"></div>
+  <div id="routineList"></div>
+</div>
+
+<!-- ナビ -->
+<div class="nav">
+  <button class="on" data-tab="home" onclick="showTab('home')"><span class="ic">🏠</span>ホーム</button>
+  <button data-tab="history" onclick="showTab('history')"><span class="ic">📅</span>履歴</button>
+  <button data-tab="stats" onclick="showTab('stats')"><span class="ic">📈</span>統計</button>
+  <button data-tab="exercises" onclick="showTab('exercises')"><span class="ic">💪</span>種目</button>
+  <button data-tab="routines" onclick="showTab('routines')"><span class="ic">📋</span>ルーティン</button>
+</div>
+
+<!-- ワークアウト画面 -->
+<div id="woScreen">
+  <div class="wo-head">
+    <button class="iconbtn" onclick="minimizeWorkout()">▾</button>
+    <input id="woName" class="grow" style="font-weight:700" placeholder="ワークアウト名"
+      oninput="if(ACT){ACT.name=this.value; saveAct();}">
+    <span class="wo-timer" id="woTimer">0:00</span>
+    <button class="iconbtn" style="font-size:21px" title="AIコーチ" onclick="openAI()">🤖</button>
+  </div>
+  <div class="wo-body">
+    <div id="woEntries"></div>
+    <button class="btn ghost" onclick="openPicker(id=>addExerciseToWorkout(id))">＋ 種目を追加</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost" onclick="openAI()">🤖 AIコーチに相談 (混雑・時間・代替案)</button>
+    <div style="height:10px"></div>
+    <button class="btn red" onclick="cancelWorkout()">ワークアウトを破棄</button>
+  </div>
+</div>
+<div class="wo-foot">
+  <button class="btn ghost sm" style="flex:1" onclick="minimizeWorkout()">最小化</button>
+  <button class="btn sm" style="flex:2; background:var(--green)" onclick="finishWorkout()">✓ 終了して保存</button>
+</div>
+
+<!-- 休憩タイマー -->
+<div id="rest">
+  <span style="font-size:13px; color:var(--sub)">休憩</span>
+  <span class="t grow" id="restT">1:30</span>
+  <button onclick="REST+=30; drawRest()">＋30秒</button>
+  <button onclick="stopRest()">スキップ</button>
+</div>
+
+<!-- 種目ピッカー -->
+<div class="modal-bg" id="pickerBg" onclick="if(event.target===this)closePicker()">
+  <div class="modal">
+    <h2>種目を選択</h2>
+    <input id="pickSearch" style="width:100%" placeholder="検索" oninput="renderPicker()">
+    <div id="pickChips" style="margin:10px 0; display:flex; gap:6px; flex-wrap:wrap"></div>
+    <div id="pickList"></div>
+  </div>
+</div>
+
+<!-- ルーティン編集 -->
+<div class="modal-bg" id="routineBg" onclick="if(event.target===this)closeRoutineEditor()">
+  <div class="modal">
+    <h2 id="routineEdTitle">ルーティンを作成</h2>
+    <input id="routineName" style="width:100%; margin-bottom:12px" placeholder="ルーティン名 (例: 胸の日)">
+    <div id="routineExList"></div>
+    <button class="btn ghost sm" onclick="openPicker(id=>addExToRoutine(id))" style="margin:8px 0 12px">＋ 種目を追加</button>
+    <button class="btn" onclick="saveRoutine()">保存</button>
+  </div>
+</div>
+
+<!-- 種目詳細 -->
+<div class="modal-bg" id="exDetailBg" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="modal" id="exDetailBody"></div>
+</div>
+
+<!-- クラウド同期 (Supabase) -->
+<div class="modal-bg" id="cloudBg" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="modal">
+    <h2>☁︎ 記録の同期</h2>
+    <div id="cloudConn" style="margin-bottom:12px">
+      <div class="sub" style="margin-bottom:6px">Supabase 接続情報 (初回のみ)</div>
+      <input id="supaUrlIn" style="width:100%; margin-bottom:6px" placeholder="https://xxxx.supabase.co">
+      <input id="supaKeyIn" style="width:100%" placeholder="anonキー (eyJ...)">
+    </div>
+    <div id="cloudAuthBox">
+      <div class="sub" style="margin-bottom:6px">メールアドレスとパスワードで全端末の記録が同期されます</div>
+      <input id="cloudEmail" type="email" style="width:100%; margin-bottom:6px" placeholder="メールアドレス" autocomplete="username">
+      <input id="cloudPw" type="password" style="width:100%; margin-bottom:10px" placeholder="パスワード (6文字以上)" autocomplete="current-password">
+      <div class="row">
+        <button class="btn sm grow" onclick="cloudAuth('login')">ログイン</button>
+        <button class="btn ghost sm grow" onclick="cloudAuth('signup')">新規登録</button>
+      </div>
+    </div>
+    <div id="cloudLoggedIn" style="display:none">
+      <div class="card" style="background:var(--card2)">
+        <div class="sub">ログイン中: <b id="cloudUser" style="color:var(--text)"></b></div>
+        <div class="sub" id="cloudState" style="margin-top:4px"></div>
+      </div>
+      <div class="row">
+        <button class="btn sm grow" onclick="cloudPullMerge(true)">今すぐ同期</button>
+        <button class="btn ghost sm grow" onclick="cloudLogout()">ログアウト</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AIコーチ -->
+<div class="modal-bg" id="aiBg" onclick="if(event.target===this)closeAI()">
+  <div class="modal">
+    <div class="row"><h2 class="grow" style="margin-bottom:0">🤖 AIコーチ</h2>
+      <button class="iconbtn" title="API設定" onclick="toggleAIKey()">⚙</button></div>
+    <div id="aiKeyBox" style="display:none; margin:10px 0; border:1px solid var(--line); border-radius:10px; padding:10px">
+      <select id="aiProvider" style="width:100%; margin-bottom:8px" onchange="SV('aiProvider',this.value);renderAIProviderUI()">
+        <option value="bridge">開発用: サブスク経由 (ローカルブリッジ)</option>
+        <option value="api">本番用: Claude APIキー</option>
+      </select>
+      <div id="aiBridgeHelp" class="sub" style="margin-bottom:8px">
+        APIキー不要。サブスクプランの使用量で動作します。<br>
+        ターミナルで <code style="color:var(--accent)">node ai-bridge.js</code> を起動しておいてください。</div>
+      <div id="aiKeyRow">
+        <div class="sub" style="margin-bottom:6px">Claude APIキー (console.anthropic.com で取得)。<br>キーはこの端末のローカルにのみ保存されます。</div>
+        <div class="row"><input id="aiKeyInput" class="grow" type="password" placeholder="sk-ant-..."></div>
+      </div>
+      <select id="aiModel" style="width:100%; margin-top:8px" onchange="SV('aiModel',this.value)">
+        <option value="haiku">Claude Haiku (速い・低コスト)</option>
+        <option value="sonnet">Claude Sonnet (高精度)</option>
+      </select>
+      <button class="btn sm" style="margin-top:8px" onclick="saveAIKey()">設定を保存</button>
+    </div>
+    <div class="sub" style="margin:8px 0">ジムの混雑状況や今日の制約を伝えると、メニューの代替・調整案を提案します</div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px">
+      <span class="chip" onclick="aiChip(this)">マシンが混んでいる</span>
+      <span class="chip" onclick="aiChip(this)">時間が30分しかない</span>
+      <span class="chip" onclick="aiChip(this)">疲労が強い</span>
+      <span class="chip" onclick="aiChip(this)">腰に違和感がある</span>
+    </div>
+    <textarea id="aiInput" rows="2" placeholder="例: ベンチ台が全部埋まってる。ダンベルとマシンは空いてる"
+      style="width:100%; background:var(--card2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:8px 10px; font-size:15px; font-family:inherit; resize:vertical"></textarea>
+    <button class="btn sm" id="aiSend" style="margin-top:8px" onclick="askAI()">提案をもらう</button>
+    <div id="aiResult" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ===== データ ===== */
+const GROUPS=["胸","背中","脚","肩","腕","腹","有酸素"];
+const DEFAULT_EX=[
+ ["ベンチプレス","胸"],["インクラインベンチプレス","胸"],["ダンベルプレス","胸"],["ダンベルフライ","胸"],["チェストプレス","胸"],["ケーブルクロスオーバー","胸"],["腕立て伏せ","胸"],["ディップス","胸"],
+ ["デッドリフト","背中"],["懸垂","背中"],["ラットプルダウン","背中"],["ベントオーバーロー","背中"],["シーテッドロー","背中"],["ワンハンドロー","背中"],["バックエクステンション","背中"],
+ ["スクワット","脚"],["レッグプレス","脚"],["ブルガリアンスクワット","脚"],["レッグエクステンション","脚"],["レッグカール","脚"],["ヒップスラスト","脚"],["カーフレイズ","脚"],["ランジ","脚"],
+ ["ショルダープレス","肩"],["ダンベルショルダープレス","肩"],["サイドレイズ","肩"],["リアレイズ","肩"],["フロントレイズ","肩"],["アップライトロー","肩"],
+ ["バーベルカール","腕"],["ダンベルカール","腕"],["ハンマーカール","腕"],["トライセプスエクステンション","腕"],["ケーブルプッシュダウン","腕"],["ナローベンチプレス","腕"],
+ ["クランチ","腹"],["レッグレイズ","腹"],["プランク","腹"],["アブローラー","腹"],["ケーブルクランチ","腹"],
+ ["ランニング","有酸素"],["サイクリング","有酸素"],["ウォーキング","有酸素"]
+].map((e,i)=>({id:"d"+i, name:e[0], group:e[1], custom:false}));
+
+/* ===== ストレージ層 =====
+   バックエンド差し替え用の抽象化。Supabase等に移行する場合は
+   同じ load/save インターフェースを持つアダプタを実装して STORE を差し替える。
+   例: const SupabaseStore={ load(k){...}, save(k,v){ localに即時保存しつつ
+       supabase.from('kv').upsert({user_id, key:k, value:v}) で非同期同期 } };
+   キー一覧: ex(種目) / wo(履歴) / ro(ルーティン) / act(進行中) / notionSeedV2(移行フラグ) */
+const LocalStore={
+  load(k){try{return JSON.parse(localStorage.getItem("wt_"+k))}catch(e){return null}},
+  save(k,v){localStorage.setItem("wt_"+k, JSON.stringify(v))},
+};
+let STORE=LocalStore;
+const LS=k=>STORE.load(k);
+const SV=(k,v)=>STORE.save(k,v);
+let EXS=LS("ex")||DEFAULT_EX;
+let WOS=LS("wo")||[];
+let ROS=LS("ro")||[];
+let ACT=LS("act")||null;
+/* 保存 = ローカル即時 + クラウドへ差分push (ログイン時のみ) */
+const saveEx=()=>{SV("ex",EXS); queuePush("ex");};
+const saveWo=()=>{SV("wo",WOS); queuePush("wo");};
+const saveRo=()=>{SV("ro",ROS); queuePush("ro");};
+const saveAct=()=>SV("act",ACT); // 進行中ワークアウトは端末ローカルのみ
+
+/* ===== ユーティリティ ===== */
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const exById=id=>EXS.find(e=>e.id===id);
+const exName=id=>exById(id)?.name||"(削除済み)";
+const fmtDur=s=>{s=Math.floor(s); const h=Math.floor(s/3600), m=Math.floor(s%3600/60);
+  return h?`${h}時間${m}分`:`${m}分`;};
+const fmtClock=s=>{s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60);
+  return m+":"+String(s%60).padStart(2,"0");};
+const fmtDate=ts=>{const d=new Date(ts);
+  return `${d.getMonth()+1}/${d.getDate()}(${"日月火水木金土"[d.getDay()]}) ${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;};
+const est1RM=(w,r)=>r>0?w*(1+r/30):0;
+const woVolume=w=>w.entries.reduce((a,en)=>a+en.sets.reduce((b,s)=>b+(s.done?(+s.w||0)*(+s.r||0):0),0),0);
+const woSets=w=>w.entries.reduce((a,en)=>a+en.sets.filter(s=>s.done).length,0);
+const round1=n=>Math.round(n*10)/10;
+
+/* ===== タブ ===== */
+const TITLES={home:"ホーム",history:"履歴",stats:"統計",exercises:"種目",routines:"ルーティン"};
+function showTab(t){
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+  $("#tab-"+t).classList.add("on");
+  document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
+  $("#pageTitle").textContent=TITLES[t];
+  ({home:renderHome,history:renderHistory,stats:renderStats,exercises:renderExercises,routines:renderRoutines})[t]();
+  window.scrollTo(0,0);
+}
+
+/* ===== ワークアウト ===== */
+let woTick=null;
+function startWorkout(routine){
+  if(ACT){ if(!confirm("進行中のワークアウトがあります。破棄して新しく始めますか?")) {openWoScreen(); return;} }
+  ACT={id:uid(), name:routine?routine.name:"ワークアウト", start:Date.now(), entries:[]};
+  if(routine) routine.exercises.forEach(re=>{
+    const hasAlts=re.alts&&re.alts.length;
+    ACT.entries.push({exId:re.exId, // 本命種目をそのまま表示
+      options:hasAlts?[re.exId,...re.alts]:null, // 先頭=本命、以降=代替(使えない時のみ切替)
+      target:re.reps?`${re.sets}×${re.reps}`:"",
+      note:re.note||"", sets:Array.from({length:re.sets||3},()=>newSet(re.exId))});
+  });
+  saveAct(); openWoScreen();
+}
+function newSet(exId){ return {w:"", r:"", done:false}; }
+function prevSets(exId){ // 直近の同種目セット。履歴がなければNotion参考値(ref:true)
+  for(let i=WOS.length-1;i>=0;i--){
+    const en=WOS[i].entries.find(e=>e.exId===exId);
+    if(en&&en.sets.length) return {sets:en.sets, ref:false};
+  }
+  const e=exById(exId), r=e&&REFS[e.name];
+  return r?{sets:r.map(([w,rr])=>({w, r:rr})), ref:true}:null;
+}
+const prevSummary=pv=>pv?pv.sets.map(s=>`${s.w}kg×${s.r}`).join(" "):"記録なし";
+function openWoScreen(){
+  $("#woScreen").classList.add("on");
+  $("#woName").value=ACT.name;
+  renderWoEntries(); drawWoTimer();
+  clearInterval(woTick); woTick=setInterval(drawWoTimer,1000);
+}
+function minimizeWorkout(){ $("#woScreen").classList.remove("on"); clearInterval(woTick); renderHome(); }
+function drawWoTimer(){ if(ACT) $("#woTimer").textContent=fmtClock((Date.now()-ACT.start)/1000); }
+function renderWoEntries(){
+  $("#woEntries").innerHTML=ACT.entries.map((en,ei)=>{
+    if(en.picked===false) en.picked=true; // 旧データ互換
+    const pv=prevSets(en.exId);
+    const isAlt=en.options&&en.exId!==en.options[0];
+    /* 代替は本命と同格に見せない: 本命を通常表示し、
+       使えない時だけ下の小さなチップから切り替える */
+    let altRow="";
+    if(en.options){
+      const others=en.options.filter(id=>id!==en.exId);
+      altRow=`<div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center">
+        <span class="sub" style="font-size:11.5px">${isAlt?`代替実施中 (本命: ${esc(exName(en.options[0]))})`:"使えない場合"} →</span>
+        ${others.map(id=>`<span class="chip" style="font-size:12px; padding:3px 10px"
+          onclick="swapAlt(${ei},'${id}')">${id===en.options[0]?"↩ 本命に戻す":esc(exName(id))}</span>`).join("")}
+      </div>`;
+    }
+    return `<div class="ex-card">
+      <div class="row"><span class="ex-name grow">${esc(exName(en.exId))}${isAlt?' <span class="pill" style="color:var(--orange)">代替</span>':""}</span>
+        ${en.target?`<span class="pill" style="color:var(--accent)">目標 ${esc(en.target)}</span>`:""}
+        <button class="iconbtn" onclick="removeEntry(${ei})">✕</button></div>
+      ${en.note?`<div class="sub" style="margin-top:4px">📝 ${esc(en.note)}</div>`:""}
+      <div class="sethead"><span>セット</span><span>前回${pv&&pv.ref?"(参考)":""}</span><span>kg</span><span>回数</span><span>✓</span></div>
+      ${en.sets.map((s,si)=>{
+        const ps=pv&&pv.sets[si];
+        const p=ps?`${ps.w||0}kg×${ps.r||0}`:"−";
+        return `<div class="setrow ${s.done?"done":""}">
+          <span class="setno">${si+1}</span><span class="prev">${p}</span>
+          <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="kg" value="${s.w}"
+            oninput="setField(${ei},${si},'w',this.value)">
+          <input type="number" inputmode="numeric" min="0" placeholder="回" value="${s.r}"
+            oninput="setField(${ei},${si},'r',this.value)">
+          <button class="done-btn" onclick="toggleDone(${ei},${si})">✓</button>
+        </div>`;}).join("")}
+      <button class="addset" onclick="addSet(${ei})">＋ セットを追加</button>
+      ${altRow}
+    </div>`;
+  }).join("");
+}
+function swapAlt(ei,id){
+  const en=ACT.entries[ei];
+  if(en.sets.some(s=>s.done)&&!confirm("入力済みのセットはリセットされます。種目を切り替えますか?")) return;
+  en.exId=id;
+  en.sets=en.sets.map(()=>({w:"",r:"",done:false})); // 切替先の前回値で入力し直す
+  saveAct(); renderWoEntries();
+}
+function setField(ei,si,f,v){ ACT.entries[ei].sets[si][f]=v; saveAct();
+  const row=event.target.closest(".setrow"); /* no rerender to keep focus */ }
+function toggleDone(ei,si){
+  const s=ACT.entries[ei].sets[si];
+  if(!s.done){ // 空なら前回値(参考値含む)を自動入力
+    const pv=prevSets(ACT.entries[ei].exId);
+    if(s.w===""&&pv&&pv.sets[si]) s.w=pv.sets[si].w;
+    if(s.r===""&&pv&&pv.sets[si]) s.r=pv.sets[si].r;
+  }
+  s.done=!s.done; saveAct(); renderWoEntries();
+  if(s.done) startRest();
+}
+function addSet(ei){ const sets=ACT.entries[ei].sets, last=sets[sets.length-1];
+  sets.push({w:last?last.w:"", r:last?last.r:"", done:false}); saveAct(); renderWoEntries(); }
+function removeEntry(ei){ if(confirm("この種目を削除しますか?")){ ACT.entries.splice(ei,1); saveAct(); renderWoEntries(); } }
+function addExerciseToWorkout(exId){
+  ACT.entries.push({exId, sets:[newSet(exId),newSet(exId),newSet(exId)]});
+  saveAct(); renderWoEntries(); closePicker();
+}
+function finishWorkout(){
+  const w={...ACT, end:Date.now(),
+    entries:ACT.entries
+      .map(en=>({exId:en.exId,
+        // 選択式だった場合はその選択を履歴に保存
+        ...(en.options?{altFrom:en.options.map(exName), altUsed:en.exId!==en.options[0]}:{}),
+        sets:en.sets.filter(s=>s.done&&(+s.r>0||+s.w>0))
+          .map(s=>({w:+s.w||0, r:+s.r||0, done:true}))}))
+      .filter(en=>en.sets.length)};
+  if(!w.entries.length){ if(!confirm("完了したセットがありません。破棄しますか?")) return;
+    ACT=null; saveAct(); stopRest(); minimizeWorkout(); return; }
+  WOS.push(w); saveWo(); ACT=null; saveAct(); stopRest();
+  clearInterval(woTick); $("#woScreen").classList.remove("on");
+  alert(`お疲れさまでした!\n${fmtDur((w.end-w.start)/1000)} / ${woSets(w)}セット / ${round1(woVolume(w))}kg`);
+  showTab("home");
+}
+function cancelWorkout(){ if(confirm("このワークアウトを破棄しますか?")){
+  ACT=null; saveAct(); stopRest(); minimizeWorkout(); } }
+
+/* ===== 休憩タイマー ===== */
+let REST=0, restTick=null;
+function startRest(){ REST=90; $("#rest").classList.add("on"); drawRest();
+  clearInterval(restTick); restTick=setInterval(()=>{REST--; if(REST<=0){stopRest(); try{navigator.vibrate&&navigator.vibrate(300)}catch(e){}} else drawRest();},1000); }
+function drawRest(){ $("#restT").textContent=fmtClock(REST); }
+function stopRest(){ clearInterval(restTick); $("#rest").classList.remove("on"); }
+
+/* ===== 種目ピッカー ===== */
+let pickCb=null, pickGroup="すべて";
+function openPicker(cb){ pickCb=cb; pickGroup="すべて"; $("#pickSearch").value="";
+  $("#pickerBg").classList.add("on"); renderPicker(); }
+function closePicker(){ $("#pickerBg").classList.remove("on"); }
+function renderPicker(){
+  $("#pickChips").innerHTML=["すべて",...GROUPS].map(g=>
+    `<span class="chip ${g===pickGroup?"on":""}" onclick="pickGroup='${g}';renderPicker()">${g}</span>`).join("");
+  const q=$("#pickSearch").value.trim();
+  const list=EXS.filter(e=>(pickGroup==="すべて"||e.group===pickGroup)&&(!q||e.name.includes(q)));
+  $("#pickList").innerHTML=list.length?list.map(e=>
+    `<div class="linkrow" onclick="pickCb('${e.id}')"><span>${esc(e.name)}</span><span class="pill">${e.group}</span></div>`).join("")
+    :`<div class="empty">見つかりません</div>`;
+}
+
+/* ===== ルーティン ===== */
+let edRoutine=null;
+function openRoutineEditor(id){
+  edRoutine=id?JSON.parse(JSON.stringify(ROS.find(r=>r.id===id))):{id:uid(), name:"", exercises:[]};
+  $("#routineEdTitle").textContent=id?"ルーティンを編集":"ルーティンを作成";
+  $("#routineName").value=edRoutine.name;
+  $("#routineBg").classList.add("on"); renderRoutineEd();
+}
+function closeRoutineEditor(){ $("#routineBg").classList.remove("on"); edRoutine=null; }
+function renderRoutineEd(){
+  $("#routineExList").innerHTML=edRoutine.exercises.length?edRoutine.exercises.map((re,i)=>
+    `<div class="linkrow" style="flex-wrap:wrap"><span class="grow">${esc(exName(re.exId))}</span>
+      <input type="number" min="1" value="${re.sets}" style="width:52px; text-align:center"
+        oninput="edRoutine.exercises[${i}].sets=+this.value||1"><span class="sub">×</span>
+      <input value="${esc(re.reps||"")}" placeholder="回数" style="width:64px; text-align:center"
+        oninput="edRoutine.exercises[${i}].reps=this.value">
+      <button class="iconbtn" title="代替種目を追加" onclick="addAltToEd(${i})">🔀</button>
+      <button class="iconbtn" onclick="edRoutine.exercises.splice(${i},1);renderRoutineEd()">✕</button>
+      ${(re.alts||[]).map((a,j)=>`<div style="width:100%; padding-left:12px" class="sub">↳ or ${esc(exName(a))}
+        <button class="iconbtn" style="font-size:13px" onclick="edRoutine.exercises[${i}].alts.splice(${j},1);renderRoutineEd()">✕</button></div>`).join("")}
+    </div>`).join("")
+    :`<div class="empty">種目を追加してください</div>`;
+}
+function addAltToEd(i){ openPicker(id=>{ const re=edRoutine.exercises[i];
+  re.alts=re.alts||[]; if(!re.alts.includes(id)&&id!==re.exId) re.alts.push(id);
+  closePicker(); renderRoutineEd(); }); }
+function addExToRoutine(id){ edRoutine.exercises.push({exId:id, sets:3, reps:"", note:"", alts:[]}); closePicker(); renderRoutineEd(); }
+function saveRoutine(){
+  edRoutine.name=$("#routineName").value.trim()||"ルーティン";
+  if(!edRoutine.exercises.length){ alert("種目を1つ以上追加してください"); return; }
+  const i=ROS.findIndex(r=>r.id===edRoutine.id);
+  if(i>=0) ROS[i]=edRoutine; else ROS.push(edRoutine);
+  saveRo(); closeRoutineEditor(); renderRoutines();
+}
+function deleteRoutine(id){ if(confirm("このルーティンを削除しますか?")){
+  ROS=ROS.filter(r=>r.id!==id); saveRo(); renderRoutines(); renderHome(); } }
+function startFromRoutine(id){ startWorkout(ROS.find(r=>r.id===id)); }
+function renderRoutines(){
+  $("#routineList").innerHTML=ROS.length?ROS.map(r=>
+    `<div class="card"><div class="row"><div class="grow"><div class="title">${esc(r.name)}</div>
+      <div class="sub">${r.exercises.map(e=>exName(e.exId)).join("・")}</div></div>
+      <button class="iconbtn" onclick="openRoutineEditor('${r.id}')">✎</button>
+      <button class="iconbtn" onclick="deleteRoutine('${r.id}')">✕</button></div>
+      <div style="height:10px"></div>
+      <button class="btn sm" onclick="startFromRoutine('${r.id}')">開始</button></div>`).join("")
+    :`<div class="empty">ルーティンはまだありません</div>`;
+}
+/* ===== ホーム ===== */
+function weekCount(){ const t=Date.now()-7*864e5; return WOS.filter(w=>w.start>t).length; }
+function renderHome(){
+  const totalVol=WOS.reduce((a,w)=>a+woVolume(w),0);
+  $("#homeStats").innerHTML=`
+    <div class="statbox"><div class="v">${weekCount()}</div><div class="l">今週の回数</div></div>
+    <div class="statbox"><div class="v">${WOS.length}</div><div class="l">累計回数</div></div>
+    <div class="statbox"><div class="v">${totalVol>=1000?round1(totalVol/1000)+"t":round1(totalVol)+"kg"}</div><div class="l">累計ボリューム</div></div>`;
+  $("#homeRoutines").innerHTML=ROS.length?ROS.slice(0,5).map(r=>
+    `<div class="card" style="cursor:pointer" onclick="startFromRoutine('${r.id}')">
+      <div class="row"><div class="grow"><div class="title">${esc(r.name)}</div>
+      <div class="sub">${r.exercises.length}種目</div></div><span style="color:var(--accent); font-weight:700">開始 ›</span></div></div>`).join("")
+    :`<div class="empty">「ルーティン」タブから作成できます</div>`;
+  $("#homeRecent").innerHTML=WOS.length?[...WOS].reverse().slice(0,3).map(woCard).join("")
+    :`<div class="empty">まだ記録がありません。<br>最初のワークアウトを始めましょう!</div>`;
+  // 進行中バナー
+  document.getElementById("actBanner")?.remove();
+  if(ACT){
+    $("#homeStats").insertAdjacentHTML("beforebegin",
+      `<div class="card" id="actBanner" style="border-color:var(--accent); cursor:pointer" onclick="openWoScreen()">
+        <div class="row"><div class="grow"><div class="title" style="color:var(--accent)">▶ 進行中: ${esc(ACT.name)}</div>
+        <div class="sub">タップして再開</div></div></div></div>`);
+  }
+}
+function woCard(w){
+  const d=(w.end-w.start)/1000;
+  return `<div class="card"><div class="title">${esc(w.name)}</div>
+    <div class="sub" style="margin:3px 0 8px">${fmtDate(w.start)} ・ ${fmtDur(d)} ・ ${woSets(w)}セット ・ ${round1(woVolume(w))}kg</div>
+    <div class="sub">${w.entries.map(en=>`${esc(exName(en.exId))} ×${en.sets.length}`).join("、")}</div></div>`;
+}
+
+/* ===== 履歴 ===== */
+function renderHistory(){
+  $("#histList").innerHTML=WOS.length?[...WOS].reverse().map(w=>{
+    const d=(w.end-w.start)/1000;
+    return `<div class="card"><div class="row" style="cursor:pointer" onclick="this.parentNode.querySelector('.hist-detail').classList.toggle('on')">
+      <div class="grow"><div class="title">${esc(w.name)}</div>
+        <div class="sub">${fmtDate(w.start)} ・ ${fmtDur(d)} ・ ${round1(woVolume(w))}kg</div></div>
+      <button class="iconbtn" onclick="event.stopPropagation();deleteWorkout('${w.id}')">✕</button></div>
+      <div class="hist-detail">${w.entries.map(en=>
+        `<div style="margin-bottom:8px"><div class="ex-name" style="font-size:14px">${esc(exName(en.exId))}
+           ${en.altUsed?`<span class="pill" style="color:var(--orange)">代替選択 (元: ${esc(en.altFrom[0])})</span>`
+             :en.altFrom?`<span class="pill">選択式</span>`:""}</div>
+         ${en.sets.map((s,i)=>`<div class="sub">${i+1}セット目: ${s.w}kg × ${s.r}回</div>`).join("")}</div>`).join("")}
+      </div></div>`;
+  }).join(""):`<div class="empty">履歴はまだありません</div>`;
+}
+function deleteWorkout(id){ if(confirm("この記録を削除しますか?")){
+  WOS=WOS.filter(w=>w.id!==id); saveWo(); renderHistory(); } }
+
+/* ===== グラフ (SVG) ===== */
+function svgLine(data, color, unit){
+  if(data.length<2) return `<div class="empty">データが2件以上必要です</div>`;
+  const W=520,H=200,P={l:44,r:10,t:14,b:26};
+  const ys=data.map(d=>d.y), ymax=Math.max(...ys)*1.1||1, ymin=Math.min(0,Math.min(...ys));
+  const X=i=>P.l+(W-P.l-P.r)*i/(data.length-1);
+  const Y=v=>H-P.b-(H-P.t-P.b)*(v-ymin)/(ymax-ymin);
+  const pts=data.map((d,i)=>`${X(i)},${Y(d.y)}`).join(" ");
+  const grid=[0,.25,.5,.75,1].map(f=>{const v=ymin+(ymax-ymin)*f, y=Y(v);
+    return `<line x1="${P.l}" y1="${y}" x2="${W-P.r}" y2="${y}" stroke="#2c313c" stroke-width="1"/>
+      <text x="${P.l-6}" y="${y+4}" fill="#8b93a3" font-size="10" text-anchor="end">${v>=1000?round1(v/1000)+"k":Math.round(v)}</text>`;}).join("");
+  const lbl=data.map((d,i)=> (data.length<=8||i%Math.ceil(data.length/6)===0||i===data.length-1)?
+    `<text x="${X(i)}" y="${H-8}" fill="#8b93a3" font-size="10" text-anchor="middle">${d.x}</text>`:"").join("");
+  const dots=data.map((d,i)=>`<circle cx="${X(i)}" cy="${Y(d.y)}" r="3.5" fill="${color}"><title>${d.x}: ${round1(d.y)}${unit}</title></circle>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%">${grid}
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>
+    ${dots}${lbl}</svg>`;
+}
+const shortDate=ts=>{const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()}`;};
+
+/* ===== 統計 ===== */
+function renderStats(){
+  const month=Date.now()-30*864e5;
+  const mWos=WOS.filter(w=>w.start>month);
+  $("#statsTop").innerHTML=`
+    <div class="statbox"><div class="v">${mWos.length}</div><div class="l">直近30日の回数</div></div>
+    <div class="statbox"><div class="v">${round1(mWos.reduce((a,w)=>a+woVolume(w),0)/1000)}t</div><div class="l">直近30日ボリューム</div></div>
+    <div class="statbox"><div class="v">${mWos.length?fmtDur(mWos.reduce((a,w)=>a+(w.end-w.start)/1000,0)/mWos.length):"−"}</div><div class="l">平均時間</div></div>`;
+  $("#volChart").innerHTML=svgLine(WOS.slice(-20).map(w=>({x:shortDate(w.start), y:woVolume(w)})),"#3b82f6","kg");
+  // 種目セレクト: 記録のある種目のみ
+  const used=[...new Set(WOS.flatMap(w=>w.entries.map(e=>e.exId)))].filter(exById);
+  const sel=$("#exSelect"), cur=sel.value;
+  sel.innerHTML=used.length?used.map(id=>`<option value="${id}">${esc(exName(id))}</option>`).join(""):`<option value="">記録がありません</option>`;
+  if(used.includes(cur)) sel.value=cur;
+  const exId=sel.value;
+  if(exId){
+    const pts=WOS.map(w=>{const en=w.entries.find(e=>e.exId===exId);
+      if(!en) return null;
+      const best=Math.max(...en.sets.map(s=>est1RM(s.w,s.r)));
+      return best>0?{x:shortDate(w.start), y:best}:null;}).filter(Boolean).slice(-20);
+    $("#rmChart").innerHTML=svgLine(pts,"#22c55e","kg");
+  } else $("#rmChart").innerHTML=`<div class="empty">記録がありません</div>`;
+}
+
+/* ===== 種目タブ ===== */
+let exGroup="すべて";
+function renderExercises(){
+  $("#groupChips").innerHTML=["すべて",...GROUPS].map(g=>
+    `<span class="chip ${g===exGroup?"on":""}" onclick="exGroup='${g}';renderExercises()">${g}</span>`).join("");
+  const q=$("#exSearch").value.trim();
+  const list=EXS.filter(e=>(exGroup==="すべて"||e.group===exGroup)&&(!q||e.name.includes(q)));
+  $("#exList").innerHTML=list.length?list.map(e=>
+    `<div class="linkrow" onclick="showExDetail('${e.id}')"><span>${esc(e.name)}${e.custom?' <span class="pill">カスタム</span>':""}</span>
+     <span class="pill">${e.group}</span></div>`).join(""):`<div class="empty">見つかりません</div>`;
+}
+function addCustomExercise(){
+  const name=prompt("種目名を入力してください"); if(!name||!name.trim()) return;
+  const g=prompt(`部位を入力してください\n(${GROUPS.join(" / ")})`,"胸");
+  EXS.push({id:uid(), name:name.trim(), group:GROUPS.includes(g)?g:"その他", custom:true});
+  saveEx(); renderExercises();
+}
+function showExDetail(id){
+  const e=exById(id);
+  const hist=WOS.map(w=>{const en=w.entries.find(x=>x.exId===id); return en?{w,en}:null;}).filter(Boolean);
+  let maxW=0, max1=0, total=0;
+  hist.forEach(h=>h.en.sets.forEach(s=>{maxW=Math.max(maxW,+s.w||0); max1=Math.max(max1,est1RM(s.w,s.r)); total+=(+s.w||0)*(+s.r||0);}));
+  $("#exDetailBody").innerHTML=`<h2>${esc(e.name)} <span class="pill">${e.group}</span></h2>
+    <table class="rec-table">
+      <tr><td>実施回数</td><td>${hist.length}回</td></tr>
+      <tr><td>最大重量</td><td>${maxW}kg</td></tr>
+      <tr><td>推定1RM (最高)</td><td>${round1(max1)}kg</td></tr>
+      <tr><td>累計ボリューム</td><td>${round1(total)}kg</td></tr></table>
+    <div class="sec">直近の記録</div>
+    ${hist.length?hist.slice(-5).reverse().map(h=>
+      `<div style="margin-bottom:8px"><div class="sub" style="font-weight:700">${fmtDate(h.w.start)}</div>
+       ${h.en.sets.map((s,i)=>`<div class="sub">${i+1}: ${s.w}kg × ${s.r}回</div>`).join("")}</div>`).join("")
+     :`<div class="empty">記録はまだありません</div>`}
+    ${e.custom?`<button class="btn red sm" style="margin-top:10px" onclick="deleteExercise('${e.id}')">この種目を削除</button>`:""}`;
+  $("#exDetailBg").classList.add("on");
+}
+function deleteExercise(id){ if(confirm("この種目を削除しますか?")){
+  EXS=EXS.filter(e=>e.id!==id); saveEx();
+  $("#exDetailBg").classList.remove("on"); renderExercises(); } }
+
+/* ===== エクスポート / インポート ===== */
+function exportData(){
+  const blob=new Blob([JSON.stringify({exercises:EXS, workouts:WOS, routines:ROS},null,1)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="workout-backup-"+new Date().toISOString().slice(0,10)+".json"; a.click();
+}
+function importData(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{try{
+    const d=JSON.parse(r.result);
+    if(!d.workouts||!d.exercises) throw 0;
+    if(!confirm("現在のデータを上書きします。よろしいですか?")) return;
+    EXS=d.exercises; WOS=d.workouts; ROS=d.routines||[];
+    saveEx(); saveWo(); saveRo(); showTab("home"); alert("インポートしました");
+  }catch(e){alert("ファイルを読み込めませんでした");}};
+  r.readAsText(f); inp.value="";
+}
+
+/* ===== Notionメニュー移植 (筋トレメニュー｜超シンプル) ===== */
+const SEED_EX=[
+ ["インクラインダンベルプレス","胸"],["チェストフライ・マシン","胸"],
+ ["ケーブルサイドレイズ(片手)","肩"],["リアデルトリバースフライ・マシン","肩"],
+ ["トライセプス・プレスダウン","腕"],["オーバーヘッド・トライセプスエクステンション","腕"],["プリーチャーカール","腕"],
+ ["ラックプル","背中"],["インクラインダンベルロウ","背中"],["ストレートアームプルダウン","背中"],
+ ["ダンベルRDL","脚"],["アダクション","脚"],["アブダクション","脚"],["ライイングレッグカール(ケーブル)","脚"],
+ ["軽め有酸素","有酸素"]];
+/* Notionの「前回：」を初回の参考履歴として使用 (アプリで記録ができるまでのフォールバック) */
+const REFS={
+ "ベンチプレス":[[60,4],[60,4],[60,5]],
+ "インクラインダンベルプレス":[[22.5,12],[22.5,11],[22.5,9]],
+ "チェストプレス":[[70,8],[65,8],[60,9]],
+ "ダンベルショルダープレス":[[17.5,6],[15,9]],
+ "チェストフライ・マシン":[[35,15],[30,11]],
+ "ケーブルサイドレイズ(片手)":[[5,15],[5,14],[5,14]],
+ "オーバーヘッド・トライセプスエクステンション":[[25,10],[20,13]],
+ "トライセプス・プレスダウン":[[35,9],[30,10]],
+ "ラックプル":[[130,4],[130,3]],
+ "懸垂":[[0,12],[0,10],[0,10]],
+ "ワンハンドロー":[[30,6],[30,8],[30,6]],
+ "インクラインダンベルロウ":[[22.5,12],[22.5,10],[22.5,10]],
+ "シーテッドロー":[[35,12],[35,12]],
+ "ストレートアームプルダウン":[[30,15],[40,10]],
+ "リアデルトリバースフライ・マシン":[[20,15],[20,15]],
+ "プリーチャーカール":[[5,12],[5,12]],
+ "ハンマーカール":[[8,12],[8,12]],
+ "スクワット":[[90,5],[90,5],[92.5,5],[92.5,3]],
+ "レッグプレス":[[140,10],[140,10]],
+ "ライイングレッグカール(ケーブル)":[[15,15],[15,15]],
+ "レッグエクステンション":[[70,15],[70,15]],
+ "アダクション":[[40,8],[35,13]],
+ "カーフレイズ":[[32.5,15],[32.5,15],[32.5,10],[32.5,15]],
+ "ダンベルRDL":[[27.5,13],[30,12]],
+ "ブルガリアンスクワット":[[22.5,10]],
+ "ヒップスラスト":[[130,1]],
+};
+/* [種目名, セット数, 目標回数, メモ, 代替種目(実行時に選択)] */
+const NOTION_ROUTINES=[
+ {name:"🦍 プッシュA｜強度", ex:[
+  ["ベンチプレス",3,"3–5","最優先。埋まっていたら後で戻る",["チェストプレス","ダンベルプレス"]],
+  ["インクラインダンベルプレス",2,"6–8",""],
+  ["ダンベルショルダープレス",2,"6–8",""],
+  ["ディップス",2,"6–10","重り付き可。疲労が強い日は削る(0–2セット)"],
+  ["ケーブルサイドレイズ(片手)",3,"12–20","ケーブルが埋まっていればダンベルサイドレイズ",["サイドレイズ"]],
+  ["トライセプス・プレスダウン",3,"10–15","ストレートバー。空いてなければロープ or Vバー"]]},
+ {name:"🦁 プッシュB｜ボリューム", ex:[
+  ["インクラインダンベルプレス",3,"8–12",""],
+  ["チェストプレス",2,"8–12","マシン",["ダンベルプレス"]],
+  ["ダンベルショルダープレス",2,"8–10",""],
+  ["チェストフライ・マシン",2,"10–15","なければインクラインダンベルフライ",["ダンベルフライ"]],
+  ["ケーブルサイドレイズ(片手)",3,"12–20","ケーブルが埋まっていればダンベルサイドレイズ",["サイドレイズ"]],
+  ["オーバーヘッド・トライセプスエクステンション",2,"10–15","ケーブル"],
+  ["トライセプス・プレスダウン",2,"10–15","ロープ。空いてなければストレートバー or Vバー"]]},
+ {name:"🐻 プルA｜強度", ex:[
+  ["ラックプル",2,"3–5","RPE8程度。埋まっていたら後で戻る。腰が重い日は1セットでも可"],
+  ["懸垂",3,"5–8","空いている方を選択",["ラットプルダウン"]],
+  ["ワンハンドロー",3,"6–8","片手ダンベルロウ"],
+  ["インクラインダンベルロウ",2,"8–10","チェストサポートロウ"],
+  ["リアデルトリバースフライ・マシン",2,"12–15","なければ胸サポートダンベルリバースフライ",["リアレイズ"]],
+  ["プリーチャーカール",2,"8–10","空いてなければインクラインダンベルカール or ケーブルカール",["ダンベルカール"]],
+  ["ハンマーカール",2,"8–10",""]]},
+ {name:"🦅 プルB｜ボリューム", ex:[
+  ["インクラインダンベルロウ",3,"8–12","チェストサポートロウ"],
+  ["懸垂",3,"8–12","空いている方を選択",["ラットプルダウン"]],
+  ["シーテッドロー",2,"10–12","ケーブル。なければ Iso-Lateral Low Row"],
+  ["ストレートアームプルダウン",2,"12–15","ロープ"],
+  ["リアデルトリバースフライ・マシン",2,"12–20","なければ胸サポートダンベルリバースフライ",["リアレイズ"]],
+  ["プリーチャーカール",2,"10–12","空いてなければインクラインダンベルカール or ケーブルカール",["ダンベルカール"]],
+  ["ハンマーカール",2,"10–12",""]]},
+ {name:"🐘 レッグA｜強度", ex:[
+  ["スクワット",4,"3–5","バックスクワット。埋まっていたら後で戻る。長時間空かなければレッグプレスを先に"],
+  ["レッグプレス",2,"8–10","ホリゾンタル or 45度"],
+  ["ライイングレッグカール(ケーブル)",2,"10–15",""],
+  ["レッグエクステンション",2,"10–15",""],
+  ["アダクション",2,"12–20",""],
+  ["カーフレイズ",4,"10–15","スタンディング"]]},
+ {name:"🐎 レッグB｜ボリューム", ex:[
+  ["ダンベルRDL",2,"10–12",""],
+  ["ブルガリアンスクワット",2,"10–12","ダンベル。脚ごとに10–12回"],
+  ["ヒップスラスト",3,"8–12","埋まっていたら後で戻る。可動域を厳格化"],
+  ["レッグエクステンション",2,"12–15",""],
+  ["ライイングレッグカール(ケーブル)",3,"10–15","ケーブル・シーテッド風でも可。難しければスタンディング"],
+  ["アブダクション",2,"12–20","2〜3セット"],
+  ["カーフレイズ",4,"12–15","スタンディング"]]},
+ {name:"😴 軽め有酸素日", ex:[
+  ["軽め有酸素",1,"20〜40分","疲れているなら完全休養でOK"]]}
+];
+function seedNotion(){
+  if(LS("notionSeedV2")) return;
+  SEED_EX.forEach(([n,g])=>{ if(!EXS.some(e=>e.name===n))
+    EXS.push({id:uid(), name:n, group:g, custom:false}); });
+  const byName=n=>EXS.find(e=>e.name===n);
+  // 同名の旧ルーティンは最新定義(代替種目付き)で置き換え
+  NOTION_ROUTINES.forEach(r=>{
+    ROS=ROS.filter(x=>x.name!==r.name);
+    ROS.push({id:uid(), name:r.name,
+      exercises:r.ex.map(([n,s,reps,note,alts])=>({exId:byName(n).id, sets:s, reps, note,
+        alts:(alts||[]).map(a=>byName(a).id)}))});
+  });
+  saveEx(); saveRo(); SV("notionSeedV2",true);
+}
+
+/* ===== クラウド同期 (Supabase 最小構成) =====
+   - kvテーブル1つ (user_id, key, value) + RLS。SQLは supabase-setup.sql 参照
+   - 認証はメール+パスワードのみ。SNS機能などは持たない
+   - ローカル(localStorage)が常に一次キャッシュ。ログイン時のみ
+     起動時pull&マージ + 保存時に1.5秒デバウンスでpush (last-write-wins) */
+const SUPA_DEFAULT={
+  url:"https://xsxryhgsljugnojdswhi.supabase.co",
+  key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhzeHJ5aGdzbGp1Z25vamRzd2hpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjA0MTQsImV4cCI6MjA5NjczNjQxNH0.-Fb415FpZt7WL1RoCZzJKG4U21_8ybyiz4MjmwtNneI"
+}; // anon公開キー(秘匿不要。データ保護はRLSが担う)
+const supaUrl=()=>LS("supaUrl")||SUPA_DEFAULT.url;
+const supaKey=()=>LS("supaKey")||SUPA_DEFAULT.key;
+let SESSION=LS("session")||null;
+const cloudReady=()=>!!(supaUrl()&&supaKey()&&SESSION);
+
+function setSyncState(s,msg){
+  const b=$("#cloudBtn");
+  b.style.color=s==="ok"?"var(--green)":s==="err"?"var(--red)":s==="pending"?"var(--orange)":"var(--sub)";
+  const st=$("#cloudState");
+  if(st) st.textContent=msg||({ok:"同期済み",err:"同期エラー(自動リトライします)",pending:"同期中…"}[s]||"");
+}
+async function supaFetch(path,opt={},retry=true){
+  const h={apikey:supaKey(),"content-type":"application/json",...(opt.headers||{})};
+  if(SESSION) h.Authorization="Bearer "+SESSION.access_token;
+  const res=await fetch(supaUrl()+path,{...opt,headers:h});
+  if(res.status===401&&retry&&SESSION&&SESSION.refresh_token){
+    if(await refreshSession()) return supaFetch(path,opt,false);
+  }
+  return res;
+}
+async function refreshSession(){
+  try{
+    const res=await fetch(supaUrl()+"/auth/v1/token?grant_type=refresh_token",{method:"POST",
+      headers:{apikey:supaKey(),"content-type":"application/json"},
+      body:JSON.stringify({refresh_token:SESSION.refresh_token})});
+    const d=await res.json();
+    if(d.access_token){
+      SESSION={access_token:d.access_token, refresh_token:d.refresh_token, email:SESSION.email};
+      SV("session",SESSION); return true;
+    }
+  }catch(e){}
+  SESSION=null; SV("session",null); renderCloudUI(); return false;
+}
+function openCloud(){
+  $("#supaUrlIn").value=supaUrl(); $("#supaKeyIn").value=supaKey();
+  renderCloudUI(); $("#cloudBg").classList.add("on");
+}
+function renderCloudUI(){
+  const conn=!!(supaUrl()&&supaKey());
+  $("#cloudConn").style.display=(conn&&SESSION)?"none":"block";
+  $("#cloudAuthBox").style.display=SESSION?"none":"block";
+  $("#cloudLoggedIn").style.display=SESSION?"block":"none";
+  if(SESSION) $("#cloudUser").textContent=SESSION.email;
+}
+function saveConnInputs(){
+  const u=$("#supaUrlIn").value.trim().replace(/\/+$/,""), k=$("#supaKeyIn").value.trim();
+  if(u) SV("supaUrl",u); if(k) SV("supaKey",k);
+  return !!(supaUrl()&&supaKey());
+}
+async function cloudAuth(mode){
+  if(!saveConnInputs()){ alert("Supabase URLとanonキーを入力してください (手順書参照)"); return; }
+  const email=$("#cloudEmail").value.trim(), pw=$("#cloudPw").value;
+  if(!email||pw.length<6){ alert("メールアドレスと6文字以上のパスワードを入力してください"); return; }
+  const path=mode==="signup"?"/auth/v1/signup":"/auth/v1/token?grant_type=password";
+  try{
+    const res=await fetch(supaUrl()+path,{method:"POST",
+      headers:{apikey:supaKey(),"content-type":"application/json"},
+      body:JSON.stringify({email, password:pw})});
+    const d=await res.json();
+    if(!res.ok) throw new Error(d.error_description||d.msg||(d.error&&(d.error.message||d.error))||"認証に失敗しました");
+    if(!d.access_token){
+      alert(mode==="signup"?"確認メールを送信しました。メール内のリンクを開いてから「ログイン」してください":"ログインできませんでした");
+      return;
+    }
+    SESSION={access_token:d.access_token, refresh_token:d.refresh_token, email};
+    SV("session",SESSION); renderCloudUI();
+    await cloudPullMerge(true);
+  }catch(e){ alert("認証エラー: "+e.message); }
+}
+function cloudLogout(){ SESSION=null; SV("session",null); renderCloudUI(); setSyncState("",""); }
+
+/* マージ: 履歴はid、種目・ルーティンは名前で重複排除 (リモート優先) */
+const mergeById=(a,b)=>{const m=new Map(); [...a,...b].forEach(x=>{if(x&&x.id&&!m.has(x.id))m.set(x.id,x)}); return [...m.values()];};
+const mergeByName=(a,b)=>{const m=new Map(); [...a,...b].forEach(x=>{if(x&&x.name&&!m.has(x.name))m.set(x.name,x)}); return [...m.values()];};
+async function cloudPullMerge(manual){
+  if(!cloudReady()){ if(manual) alert("ログインしてください"); return; }
+  setSyncState("pending");
+  try{
+    const res=await supaFetch("/rest/v1/kv?select=key,value");
+    if(!res.ok) throw new Error("pull失敗 "+res.status);
+    const remote={}; (await res.json()).forEach(r=>remote[r.key]=r.value);
+    if(remote.ex) EXS=mergeByName(remote.ex,EXS);
+    if(remote.wo) WOS=mergeById(remote.wo,WOS).sort((a,b)=>a.start-b.start);
+    if(remote.ro) ROS=mergeByName(remote.ro,ROS);
+    saveEx(); saveWo(); saveRo(); // ローカル反映 + マージ結果をpush
+    setSyncState("ok");
+    renderHome();
+    if(manual) alert("同期しました (履歴"+WOS.length+"件)");
+  }catch(e){ setSyncState("err"); if(manual) alert("同期エラー: "+e.message); }
+}
+let pushTimer=null, dirtyKeys=new Set();
+function queuePush(key){
+  if(!cloudReady()) return;
+  dirtyKeys.add(key); setSyncState("pending");
+  clearTimeout(pushTimer); pushTimer=setTimeout(doPush,1500);
+}
+async function doPush(){
+  if(!cloudReady()||!dirtyKeys.size) return;
+  const keys=[...dirtyKeys]; dirtyKeys.clear();
+  const data={ex:EXS, wo:WOS, ro:ROS};
+  try{
+    const res=await supaFetch("/rest/v1/kv?on_conflict=user_id,key",{method:"POST",
+      headers:{Prefer:"resolution=merge-duplicates"},
+      body:JSON.stringify(keys.map(k=>({key:k, value:data[k]})))});
+    if(!res.ok) throw 0;
+    setSyncState("ok");
+  }catch(e){
+    keys.forEach(k=>dirtyKeys.add(k)); setSyncState("err");
+    clearTimeout(pushTimer); pushTimer=setTimeout(doPush,10000); // 自動リトライ
+  }
+}
+
+/* ===== AIコーチ =====
+   ハイブリッド設計:
+   - 記録・メニュー管理・集計は通常のコードとローカルデータが担う(毎回のAI呼び出しなし)
+   - 「マシンが混雑」「時間がない」等の状況が発生したときだけ、
+     今日のメニュー/前回実績/種目ライブラリ/状況を構造化して Claude API に渡し、
+     代替種目・調整案(+理由)をJSONで受け取って適用する */
+/* プロバイダ:
+   - bridge(開発用デフォルト): ローカルの ai-bridge.js 経由で Claude Code CLI を呼ぶ。
+     サブスクプランの使用量で動作し、APIキー・API課金は不要。
+   - api(本番用): Claude API を直接呼ぶ。⚙でキーを設定して切り替えるだけで移行完了。 */
+let AISUG=[];
+const aiProvider=()=>LS("aiProvider")||"bridge";
+const aiModel=()=>LS("aiModel")||"haiku";
+const API_MODELS={haiku:"claude-haiku-4-5-20251001", sonnet:"claude-sonnet-4-6"};
+const BRIDGE_URL="http://127.0.0.1:8787/";
+function openAI(){
+  $("#aiBg").classList.add("on");
+  $("#aiProvider").value=aiProvider();
+  $("#aiModel").value=aiModel();
+  $("#aiKeyBox").style.display=(aiProvider()==="api"&&!LS("aiKey"))?"block":"none";
+  renderAIProviderUI();
+}
+function renderAIProviderUI(){
+  $("#aiKeyRow").style.display=$("#aiProvider").value==="api"?"block":"none";
+  $("#aiBridgeHelp").style.display=$("#aiProvider").value==="bridge"?"block":"none";
+}
+function closeAI(){ $("#aiBg").classList.remove("on"); }
+function toggleAIKey(){ const b=$("#aiKeyBox");
+  b.style.display=b.style.display==="none"?"block":"none"; renderAIProviderUI(); }
+function saveAIKey(){
+  SV("aiProvider",$("#aiProvider").value); SV("aiModel",$("#aiModel").value);
+  const k=$("#aiKeyInput").value.trim();
+  if(k) SV("aiKey",k);
+  if($("#aiProvider").value==="api"&&!LS("aiKey")){ alert("APIキーを入力してください"); return; }
+  $("#aiKeyBox").style.display="none";
+}
+/* プロバイダ抽象化: どちらも (system, prompt) → 回答テキスト */
+async function aiCall(system,prompt){
+  if(aiProvider()==="bridge"){
+    let res;
+    try{ res=await fetch(BRIDGE_URL,{method:"POST",
+      headers:{"content-type":"application/json"},
+      body:JSON.stringify({system, prompt, model:aiModel()})}); }
+    catch(e){ throw new Error("ブリッジに接続できません。ターミナルで node ai-bridge.js を起動してください"); }
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+    return data.text;
+  }
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"content-type":"application/json","x-api-key":LS("aiKey"),
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:API_MODELS[aiModel()], max_tokens:1500,
+      system, messages:[{role:"user",content:prompt}]})});
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message||"APIエラー");
+  return (data.content||[]).map(b=>b.text||"").join("");
+}
+function aiChip(el){ const i=$("#aiInput"); i.value=(i.value+" "+el.textContent+"。").trim(); }
+
+function buildAIContext(){
+  const menu=ACT.entries.map(en=>{
+    const name=exName(en.exId)+(en.options?`（代替候補: ${en.options.filter(id=>id!==en.exId).map(exName).join("、")}）`:"");
+    const done=en.sets.filter(s=>s.done).map(s=>`${s.w}kg×${s.r}`).join(" ");
+    return `- ${name}${en.target?` 目標${en.target}`:""} [完了: ${done||"まだ"} / 予定${en.sets.length}セット]${en.note?` メモ:${en.note}`:""}`;
+  }).join("\n");
+  const ids=[...new Set(ACT.entries.flatMap(en=>en.options||[en.exId]))];
+  const prev=ids.map(id=>{const pv=prevSets(id);
+    return pv?`- ${exName(id)}: ${prevSummary(pv)}${pv.ref?" (参考値)":""}`:null;}).filter(Boolean).join("\n");
+  const lib=GROUPS.map(g=>g+": "+EXS.filter(e=>e.group===g).map(e=>e.name).join("、")).join("\n");
+  return {menu,prev,lib};
+}
+function parseAIJson(t){
+  const a=t.indexOf("{"), b=t.lastIndexOf("}");
+  if(a<0||b<0) throw new Error("AIの回答を解析できませんでした");
+  return JSON.parse(t.slice(a,b+1));
+}
+async function askAI(){
+  if(aiProvider()==="api"&&!LS("aiKey")){ $("#aiKeyBox").style.display="block"; renderAIProviderUI(); return; }
+  if(!ACT){ alert("ワークアウト中に使用できます"); return; }
+  const sit=$("#aiInput").value.trim();
+  if(!sit){ alert("状況を入力してください"); return; }
+  const c=buildAIContext();
+  const btn=$("#aiSend"); btn.disabled=true; btn.textContent="考え中…";
+  $("#aiResult").innerHTML="";
+  const system="あなたは筋トレアプリ組み込みのAIコーチ。ユーザーの今日のメニュー・前回実績・利用可能な種目・現在の状況を踏まえ、現実的で安全な提案をする。重量目安は前回実績から推定する。種目名はできるだけライブラリ内の名称をそのまま使う。回答は必ず指定のJSONのみを出力する。";
+  const prompt=
+`# 今日のメニュー(進行中)
+${c.menu}
+
+# 各種目の前回実績
+${c.prev}
+
+# 種目ライブラリ
+${c.lib}
+
+# 現在の状況
+${sit}
+
+# 回答形式(このJSON 1つのみを出力)
+{"message":"全体コメント(1〜2文)","suggestions":[{"type":"replace|adjust|skip|add","target":"対象種目名(メニュー内の名称)","replacement":"代替種目名(replace/add時のみ)","group":"${GROUPS.join("|")}","sets":3,"reps":"8–12","weight":"20kg目安","reason":"簡潔な理由"}]}`;
+  try{
+    const out=parseAIJson(await aiCall(system,prompt));
+    AISUG=out.suggestions||[];
+    renderAIResult(out);
+  }catch(e){
+    $("#aiResult").innerHTML=`<div class="empty">エラー: ${esc(e.message)}</div>`;
+  }
+  btn.disabled=false; btn.textContent="提案をもらう";
+}
+const SUG_LABEL={replace:"差し替え",adjust:"調整",skip:"スキップ",add:"追加"};
+function renderAIResult(out){
+  $("#aiResult").innerHTML=
+    `<div class="card" style="background:var(--card2)">💬 ${esc(out.message||"")}</div>`+
+    AISUG.map((s,i)=>`<div class="card" id="sug${i}">
+      <div class="row"><span class="pill" style="color:var(--accent)">${SUG_LABEL[s.type]||esc(s.type)}</span>
+        <span class="title grow" style="font-size:14px">${esc(s.target||"")}${s.replacement?` → ${esc(s.replacement)}`:""}</span></div>
+      ${s.sets||s.weight?`<div class="sub" style="margin-top:6px">${s.sets?`${s.sets}セット`:""}${s.reps?` × ${esc(s.reps)}`:""}${s.weight?` / ${esc(s.weight)}`:""}</div>`:""}
+      <div class="sub" style="margin-top:4px">${esc(s.reason||"")}</div>
+      <button class="btn sm" style="margin-top:8px" onclick="applySug(${i})">メニューに適用</button>
+    </div>`).join("");
+}
+function findOrCreateEx(name,group){
+  let e=EXS.find(x=>x.name===name)||EXS.find(x=>x.name.includes(name)||name.includes(x.name));
+  if(!e){ e={id:uid(), name, group:GROUPS.includes(group)?group:"その他", custom:true};
+    EXS.push(e); saveEx(); }
+  return e;
+}
+function resizeSets(en,n){
+  while(en.sets.length<n) en.sets.push({w:"",r:"",done:false});
+  if(en.sets.length>n) en.sets=en.sets.slice(0,n);
+}
+function applySug(i){
+  const s=AISUG[i]; if(!s||!ACT) return;
+  const ei=ACT.entries.findIndex(en=>
+    exName(en.exId)===s.target||(en.options&&en.options.some(id=>exName(id)===s.target)));
+  if(s.type==="skip"){
+    if(ei>=0) ACT.entries.splice(ei,1);
+  } else if(s.type==="add"){
+    const e=findOrCreateEx(s.replacement||s.target, s.group);
+    ACT.entries.push({exId:e.id, target:s.sets&&s.reps?`${s.sets}×${s.reps}`:"",
+      note:"AI提案: "+(s.reason||""), sets:Array.from({length:s.sets||3},()=>newSet())});
+  } else if(ei<0){ alert("対象種目が見つかりません: "+s.target); return; }
+  else if(s.type==="replace"&&s.replacement){
+    const en=ACT.entries[ei];
+    const old=en.options?en.options[0]:en.exId;
+    const e=findOrCreateEx(s.replacement, s.group);
+    en.options=en.options||[old];
+    if(!en.options.includes(e.id)) en.options.push(e.id);
+    en.exId=e.id; // 終了時に「代替選択」として履歴に保存される
+    if(s.sets) resizeSets(en,s.sets);
+    if(s.sets&&s.reps) en.target=`${s.sets}×${s.reps}`;
+    en.note=("AI提案: "+(s.reason||"")+(s.weight?` (目安 ${s.weight})`:"")).trim();
+  } else { // adjust
+    const en=ACT.entries[ei];
+    if(s.sets) resizeSets(en,s.sets);
+    if(s.sets&&s.reps) en.target=`${s.sets}×${s.reps}`;
+    en.note=("AI提案: "+(s.reason||"")+(s.weight?` (目安 ${s.weight})`:"")).trim();
+  }
+  saveAct(); renderWoEntries();
+  const el=document.getElementById("sug"+i);
+  if(el){ el.style.opacity=.45; el.querySelector("button").textContent="適用済み ✓"; }
+}
+
+/* ===== 初期化 ===== */
+seedNotion();
+renderHome();
+if(cloudReady()) cloudPullMerge(); // ログイン済みなら起動時に同期
+</script>
+</body>
+</html>
