@@ -87,6 +87,9 @@ input::placeholder{color:#5a6170;}
 .ex-card.done-card{border-color:rgba(34,197,94,.45); background:#141d17; opacity:.88;}
 .ex-card.done-card .ex-name{color:var(--green);}
 .ex-name{color:var(--accent); font-weight:700; font-size:15.5px;}
+.exnum{min-width:22px; height:22px; border-radius:7px; background:var(--card2);
+  border:1px solid var(--line); color:var(--sub); font-size:12px; font-weight:800;
+  display:flex; align-items:center; justify-content:center; flex:none;}
 .sethead,.setrow{display:grid; grid-template-columns:34px 1fr 1.1fr 1.1fr 42px; gap:8px;
   align-items:center; text-align:center;}
 .sethead{color:var(--sub); font-size:11.5px; margin:10px 0 4px; font-weight:600;}
@@ -102,7 +105,16 @@ input::placeholder{color:#5a6170;}
   padding:8px 0 2px; cursor:pointer;}
 
 /* rest timer */
-#rest{display:none; position:fixed; left:12px; right:12px; bottom:84px; z-index:120;
+/* 最小化中のトレーニングバー (Hevy風) */
+#miniBar{position:fixed; left:10px; right:10px; z-index:90;
+  bottom:calc(64px + env(safe-area-inset-bottom));
+  display:none; align-items:center; gap:10px;
+  background:#16233f; border:1px solid var(--accent); border-radius:14px;
+  padding:9px 12px; cursor:pointer;}
+.minidot{width:10px; height:10px; border-radius:50%; background:var(--green); flex:none;
+  animation:pulse 1.6s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1} 50%{opacity:.3}}
+#rest{display:none; position:fixed; left:12px; right:12px; bottom:calc(124px + env(safe-area-inset-bottom)); z-index:120;
   background:#1d2a44; border:1px solid var(--accent); border-radius:14px; padding:10px 14px;
   align-items:center; gap:12px;}
 #rest.on{display:flex;}
@@ -149,8 +161,12 @@ svg text{font-family:inherit;}
 <div class="tab on" id="tab-home">
   <div id="homeStats" class="statgrid"></div>
   <button class="btn" data-i18n="startEmpty" onclick="startWorkout()">＋ 空のワークアウトを開始</button>
-  <div class="sec" data-i18n="fromRoutine">ルーティンから開始</div>
-  <div id="homeRoutines"></div>
+  <div class="row" style="margin:18px 0 8px">
+    <span class="sec grow" style="margin:0" data-i18n="rout">ルーティン</span>
+    <button class="btn ghost sm" style="width:auto; padding:8px 14px" data-i18n="newShort" onclick="openRoutineEditor()">＋ 作成</button>
+    <button class="btn ghost sm" style="width:auto; padding:8px 14px" data-i18n="aiShort" onclick="openAIImport()">🤖 テキスト取込</button>
+  </div>
+  <div id="routineList"></div>
   <div id="homeRecent"></div>
 </div>
 
@@ -179,13 +195,15 @@ svg text{font-family:inherit;}
   <div class="card" id="exList"></div>
 </div>
 
-<!-- ルーティン -->
-<div class="tab" id="tab-routines">
-  <button class="btn ghost" data-i18n="newRoutine" onclick="openRoutineEditor()">＋ 新しいルーティンを作成 (手動)</button>
-  <div style="height:8px"></div>
-  <button class="btn ghost" data-i18n="aiImportBtn" onclick="openAIImport()">🤖 テキストから作成 (AIに貼り付け)</button>
-  <div style="height:12px"></div>
-  <div id="routineList"></div>
+<!-- 最小化中のトレーニングバー -->
+<div id="miniBar" onclick="openWoScreen()">
+  <span class="minidot"></span>
+  <div class="grow" style="min-width:0">
+    <div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+      <span id="miniName"></span> <span id="miniTime" style="color:var(--accent); font-variant-numeric:tabular-nums"></span></div>
+    <div class="sub" id="miniSub" style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis"></div>
+  </div>
+  <button class="iconbtn" style="font-size:17px" onclick="event.stopPropagation();cancelWorkout()">🗑</button>
 </div>
 
 <!-- ナビ -->
@@ -194,7 +212,6 @@ svg text{font-family:inherit;}
   <button data-tab="history" onclick="showTab('history')"><span class="ic">📅</span><span data-i18n="hist">履歴</span></button>
   <button data-tab="stats" onclick="showTab('stats')"><span class="ic">📈</span><span data-i18n="stats">統計</span></button>
   <button data-tab="exercises" onclick="showTab('exercises')"><span class="ic">💪</span><span data-i18n="exTab">種目</span></button>
-  <button data-tab="routines" onclick="showTab('routines')"><span class="ic">📋</span><span data-i18n="rout">ルーティン</span></button>
 </div>
 
 <!-- ワークアウト画面 -->
@@ -433,6 +450,8 @@ const I18N={
  routTitleNew:["ルーティンを作成","Create routine"], routTitleEdit:["ルーティンを編集","Edit routine"],
  routNamePh:["ルーティン名 (例: 胸の日)","Routine name (e.g. Chest day)"],
  save:["保存","Save"], addExFirst:["種目を追加してください","Add exercises first"],
+ newShort:["＋ 作成","+ New"], aiShort:["🤖 テキスト取込","🤖 From text"],
+ allDoneMini:["✓ 全セット完了","✓ All sets done"],
  altN:["代替","Alt "], repsPh:["回数","reps"],
  upPrio:["優先度を上げる","Raise priority"], changeAlt:["別の種目に変更","Change exercise"], del:["削除","Delete"], addAlt:["代替種目を追加","Add alternative"],
  addAltShort:["＋代替","+ Alt"],
@@ -558,13 +577,13 @@ const woSets=w=>w.entries.reduce((a,en)=>a+en.sets.filter(s=>s.done).length,0);
 const round1=n=>Math.round(n*10)/10;
 
 /* ===== タブ ===== */
-const TITLES={home:"home",history:"hist",stats:"stats",exercises:"exTab",routines:"rout"};
+const TITLES={home:"home",history:"hist",stats:"stats",exercises:"exTab"};
 function showTab(tab){
   document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
   $("#tab-"+tab).classList.add("on");
   document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
   $("#pageTitle").textContent=tr(TITLES[tab]);
-  ({home:renderHome,history:renderHistory,stats:renderStats,exercises:renderExercises,routines:renderRoutines})[tab]();
+  ({home:renderHome,history:renderHistory,stats:renderStats,exercises:renderExercises})[tab]();
   window.scrollTo(0,0);
 }
 
@@ -603,8 +622,9 @@ function openWoScreen(){
   $("#woTempNote").style.display=ACT.fromRoutine?"block":"none"; // ルーティン由来の時のみ注記
   renderWoEntries(); drawWoTimer();
   clearInterval(woTick); woTick=setInterval(drawWoTimer,1000);
+  updateMiniBar(); // ワークアウト画面表示中はミニバー非表示
 }
-function minimizeWorkout(){ $("#woScreen").classList.remove("on"); clearInterval(woTick); renderHome(); }
+function minimizeWorkout(){ $("#woScreen").classList.remove("on"); clearInterval(woTick); renderHome(); updateMiniBar(); }
 function drawWoTimer(){ if(ACT) $("#woTimer").textContent=fmtClock((Date.now()-ACT.start)/1000); }
 function renderWoEntries(){
   $("#woEntries").innerHTML=ACT.entries.map((en,ei)=>{
@@ -626,7 +646,7 @@ function renderWoEntries(){
     }
     const allDone=en.sets.length>0&&en.sets.every(s=>s.done);
     return `<div class="ex-card${allDone?" done-card":""}">
-      <div class="row">${thumbHtml(exName(en.exId),44)}<span class="ex-name grow">${allDone?"✓ ":""}${esc(exDisp(en.exId))}${isAlt?` <span class="pill" style="color:var(--orange)">${tr("altN")}${en.options.indexOf(en.exId)}</span>`:""}</span>
+      <div class="row"><span class="exnum">${ei+1}</span>${thumbHtml(exName(en.exId),44)}<span class="ex-name grow">${allDone?"✓ ":""}${esc(exDisp(en.exId))}${isAlt?` <span class="pill" style="color:var(--orange)">${tr("altN")}${en.options.indexOf(en.exId)}</span>`:""}</span>
         ${en.target?`<span class="pill" style="color:var(--accent)">${tr("goal")} ${esc(en.target)}</span>`:""}
         <button class="iconbtn" onclick="removeEntry(${ei})">✕</button></div>
       ${en.note?`<div class="sub" style="margin-top:4px">📝 ${esc(en.note)}</div>`:""}
@@ -686,6 +706,7 @@ function finishWorkout(){
     ACT=null; saveAct(); stopRest(); minimizeWorkout(); return; }
   WOS.push(w); saveWo(); ACT=null; saveAct(); stopRest();
   clearInterval(woTick); $("#woScreen").classList.remove("on");
+  updateMiniBar();
   alert(`${tr("wellDone")}\n${fmtDur((w.end-w.start)/1000)} / ${woSets(w)}${tr("setU")} / ${round1(woVolume(w))}kg`);
   showTab("home");
 }
@@ -821,23 +842,33 @@ function renderHome(){
     <div class="statbox"><div class="v">${weekCount()}</div><div class="l">${tr("wkWeek")}</div></div>
     <div class="statbox"><div class="v">${WOS.length}</div><div class="l">${tr("wkTotal")}</div></div>
     <div class="statbox"><div class="v">${totalVol>=1000?round1(totalVol/1000)+"t":round1(totalVol)+"kg"}</div><div class="l">${tr("volTotal")}</div></div>`;
-  $("#homeRoutines").innerHTML=ROS.length?ROS.slice(0,7).map(r=>
-    `<div class="card" style="cursor:pointer" onclick="startFromRoutine('${r.id}')">
-      <div class="row"><div class="grow"><div class="title">${esc(r.name)}</div>
-      <div class="sub">${r.exercises.length} ${tr("exN")}</div></div><span style="color:var(--accent); font-weight:700">${tr("start")} ›</span></div></div>`).join("")
-    :`<div class="empty">${tr("noRoutines")}</div>`;
+  renderRoutines(); // ルーティン一覧はホームに統合
   // 前回・前々回のみ表示 (それ以前は履歴タブで)
   const rec=[...WOS].reverse().slice(0,2);
   $("#homeRecent").innerHTML=rec.length
     ?rec.map((w,i)=>`<div class="sec">${i===0?tr("lastWo"):tr("last2Wo")}</div>`+woCard(w)).join("")
     :`<div class="sec">${tr("lastWo")}</div><div class="empty">${tr("noRecords")}</div>`;
-  // 進行中バナー
-  document.getElementById("actBanner")?.remove();
-  if(ACT){
-    $("#homeStats").insertAdjacentHTML("beforebegin",
-      `<div class="card" id="actBanner" style="border-color:var(--accent); cursor:pointer" onclick="openWoScreen()">
-        <div class="row"><div class="grow"><div class="title" style="color:var(--accent)">${tr("inProg")}: ${esc(ACT.name)}</div>
-        <div class="sub">${tr("tapResume")}</div></div></div></div>`);
+  updateMiniBar(); // 進行中はミニバー(全タブ共通)で表示
+}
+/* ===== 最小化中のトレーニングバー ===== */
+let miniTick=null;
+function updateMiniBar(){
+  const show=!!ACT&&!$("#woScreen").classList.contains("on");
+  $("#miniBar").style.display=show?"flex":"none";
+  clearInterval(miniTick);
+  if(show){ drawMini(); miniTick=setInterval(drawMini,1000); }
+}
+function drawMini(){
+  if(!ACT){ updateMiniBar(); return; }
+  $("#miniName").textContent=ACT.name;
+  $("#miniTime").textContent=fmtClock((Date.now()-ACT.start)/1000);
+  // 現在の種目と「何セット目か」だけを表示
+  const cur=ACT.entries.find(en=>en.sets.some(s=>!s.done));
+  if(cur){
+    const n=cur.sets.filter(s=>s.done).length+1;
+    $("#miniSub").textContent=`${exDisp(cur.exId)} ・ ${LANG==="ja"?`${n}セット目`:`Set ${n}`}`;
+  } else {
+    $("#miniSub").textContent=ACT.entries.length?tr("allDoneMini"):tr("tapResume");
   }
 }
 function woCard(w){
