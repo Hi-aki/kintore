@@ -169,7 +169,9 @@ svg text{font-family:inherit;}
 
 <!-- ルーティン -->
 <div class="tab" id="tab-routines">
-  <button class="btn ghost" onclick="openRoutineEditor()">＋ 新しいルーティンを作成</button>
+  <button class="btn ghost" onclick="openRoutineEditor()">＋ 新しいルーティンを作成 (手動)</button>
+  <div style="height:8px"></div>
+  <button class="btn ghost" onclick="openAIImport()">🤖 テキストから作成 (AIに貼り付け)</button>
   <div style="height:12px"></div>
   <div id="routineList"></div>
 </div>
@@ -308,6 +310,17 @@ svg text{font-family:inherit;}
   </div>
 </div>
 
+<!-- AIルーティンインポート -->
+<div class="modal-bg" id="aiImportBg" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="modal">
+    <h2>🤖 テキストからルーティン作成</h2>
+    <div class="sub" style="margin-bottom:8px">メモ・Notion・LINEなどのメニューテキストをそのまま貼り付けると、AIが解析してルーティンを作成します。「○○がなければ△△」のような代替種目も優先度順で取り込まれます。複数メニューの一括貼り付けも可能です。</div>
+    <textarea id="aiImportText" rows="9" placeholder="例:&#10;胸の日&#10;・ベンチプレス 3×3-5 (台が混んでたらチェストプレス or ダンベルプレス)&#10;・インクラインDBプレス 2×6-8&#10;・サイドレイズ 3×12-20&#10;…"
+      style="width:100%; background:var(--card2); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:8px 10px; font-size:14px; font-family:inherit; resize:vertical"></textarea>
+    <button class="btn sm" id="aiImportBtn" style="margin-top:8px" onclick="runAIImport()">AIで作成</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 /* ===== データ ===== */
@@ -415,14 +428,16 @@ function renderWoEntries(){
     let altRow="";
     if(en.options){
       const others=en.options.filter(id=>id!==en.exId);
+      // 代替は options 内の並び順 = 優先度 (1が最優先)
+      const label=id=>id===en.options[0]?"↩ 本命に戻す":`代替${en.options.indexOf(id)}: ${esc(exName(id))}`;
       altRow=`<div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center">
         <span class="sub" style="font-size:11.5px">${isAlt?`代替実施中 (本命: ${esc(exName(en.options[0]))})`:"使えない場合"} →</span>
         ${others.map(id=>`<span class="chip" style="font-size:12px; padding:3px 10px"
-          onclick="swapAlt(${ei},'${id}')">${id===en.options[0]?"↩ 本命に戻す":esc(exName(id))}</span>`).join("")}
+          onclick="swapAlt(${ei},'${id}')">${label(id)}</span>`).join("")}
       </div>`;
     }
     return `<div class="ex-card">
-      <div class="row"><span class="ex-name grow">${esc(exName(en.exId))}${isAlt?' <span class="pill" style="color:var(--orange)">代替</span>':""}</span>
+      <div class="row"><span class="ex-name grow">${esc(exName(en.exId))}${isAlt?` <span class="pill" style="color:var(--orange)">代替${en.options.indexOf(en.exId)}</span>`:""}</span>
         ${en.target?`<span class="pill" style="color:var(--accent)">目標 ${esc(en.target)}</span>`:""}
         <button class="iconbtn" onclick="removeEntry(${ei})">✕</button></div>
       ${en.note?`<div class="sub" style="margin-top:4px">📝 ${esc(en.note)}</div>`:""}
@@ -528,13 +543,22 @@ function renderRoutineEd(){
         oninput="edRoutine.exercises[${i}].reps=this.value">
       <button class="iconbtn" title="代替種目を追加" onclick="addAltToEd(${i})">🔀</button>
       <button class="iconbtn" onclick="edRoutine.exercises.splice(${i},1);renderRoutineEd()">✕</button>
-      ${(re.alts||[]).map((a,j)=>`<div style="width:100%; padding-left:12px" class="sub">↳ or ${esc(exName(a))}
-        <button class="iconbtn" style="font-size:13px" onclick="edRoutine.exercises[${i}].alts.splice(${j},1);renderRoutineEd()">✕</button></div>`).join("")}
+      ${(re.alts||[]).map((a,j)=>`<div style="width:100%; padding-left:12px; display:flex; align-items:center; gap:2px" class="sub">
+        <span class="grow">代替${j+1}: ${esc(exName(a))}</span>
+        <button class="iconbtn" title="優先度を上げる" style="font-size:13px${j===0?";opacity:.25":""}" ${j===0?"disabled":""} onclick="altUp(${i},${j})">↑</button>
+        <button class="iconbtn" title="別の種目に変更" style="font-size:13px" onclick="altReplace(${i},${j})">✎</button>
+        <button class="iconbtn" title="削除" style="font-size:13px" onclick="edRoutine.exercises[${i}].alts.splice(${j},1);renderRoutineEd()">✕</button>
+      </div>`).join("")}
     </div>`).join("")
     :`<div class="empty">種目を追加してください</div>`;
 }
 function addAltToEd(i){ openPicker(id=>{ const re=edRoutine.exercises[i];
   re.alts=re.alts||[]; if(!re.alts.includes(id)&&id!==re.exId) re.alts.push(id);
+  closePicker(); renderRoutineEd(); }); }
+function altUp(i,j){ const a=edRoutine.exercises[i].alts;
+  if(j>0){ [a[j-1],a[j]]=[a[j],a[j-1]]; renderRoutineEd(); } }
+function altReplace(i,j){ openPicker(id=>{ const re=edRoutine.exercises[i];
+  if(id!==re.exId&&!re.alts.includes(id)) re.alts[j]=id;
   closePicker(); renderRoutineEd(); }); }
 function addExToRoutine(id){ edRoutine.exercises.push({exId:id, sets:3, reps:"", note:"", alts:[]}); closePicker(); renderRoutineEd(); }
 function saveRoutine(){
@@ -987,7 +1011,7 @@ async function aiCall(system,prompt){
     headers:{"content-type":"application/json","x-api-key":LS("aiKey"),
       "anthropic-version":"2023-06-01",
       "anthropic-dangerous-direct-browser-access":"true"},
-    body:JSON.stringify({model:API_MODELS[aiModel()], max_tokens:1500,
+    body:JSON.stringify({model:API_MODELS[aiModel()], max_tokens:4000,
       system, messages:[{role:"user",content:prompt}]})});
   const data=await res.json();
   if(data.error) throw new Error(data.error.message||"APIエラー");
@@ -1097,6 +1121,54 @@ function applySug(i){
   saveAct(); renderWoEntries();
   const el=document.getElementById("sug"+i);
   if(el){ el.style.opacity=.45; el.querySelector("button").textContent="適用済み ✓"; }
+}
+
+/* ===== AIルーティンインポート =====
+   テキストのメニューを aiCall で解析し、ルーティン(代替・優先度込み)を生成 */
+function openAIImport(){
+  if(aiProvider()==="api"&&!LS("aiKey")){ openAI(); return; } // 先にAI設定へ誘導
+  $("#aiImportBg").classList.add("on");
+}
+function applyImportedRoutines(out){
+  let made=0;
+  (out.routines||[]).forEach(r=>{
+    if(!r.exercises||!r.exercises.length) return;
+    ROS.push({id:uid(), name:(r.name||"インポートしたルーティン").trim(),
+      exercises:r.exercises.map(e=>{
+        const ex=findOrCreateEx(String(e.name||"").trim(), e.group);
+        return {exId:ex.id, sets:+e.sets||3, reps:e.reps||"", note:e.note||"",
+          alts:(e.alts||[]).map(a=>findOrCreateEx(String(a).trim(), e.group).id)
+            .filter((id,k,arr)=>id!==ex.id&&arr.indexOf(id)===k)}; // 重複・本命と同一を除外
+      })});
+    made++;
+  });
+  if(made) saveRo();
+  return made;
+}
+async function runAIImport(){
+  const txt=$("#aiImportText").value.trim();
+  if(!txt){ alert("メニューのテキストを貼り付けてください"); return; }
+  const btn=$("#aiImportBtn"); btn.disabled=true; btn.textContent="解析中… (10〜30秒)";
+  const lib=GROUPS.map(g=>g+": "+EXS.filter(e=>e.group===g).map(e=>e.name).join("、")).join("\n");
+  const system="あなたは筋トレアプリのルーティン作成アシスタント。ユーザーが貼り付けたメニューテキストを解析し、指定のJSONのみを出力する。種目名はできるだけライブラリ内の名称に正規化する(略称や英語名も対応付ける)。「なければ」「or」「混んでいたら」等で書かれた代替種目は alts に優先度順(最優先が先頭)で入れる。セット数・回数・メモも抽出する。";
+  const prompt=
+`# 種目ライブラリ
+${lib}
+
+# ユーザーのメニューテキスト
+${txt}
+
+# 出力形式(このJSON 1つのみを出力)
+{"routines":[{"name":"ルーティン名","exercises":[{"name":"種目名","group":"${GROUPS.join("|")}","sets":3,"reps":"8–12","note":"メモ(任意)","alts":["代替種目名を優先度順に"]}]}]}`;
+  try{
+    const out=parseAIJson(await aiCall(system,prompt));
+    const made=applyImportedRoutines(out);
+    if(!made) throw new Error("ルーティンを抽出できませんでした。テキストを確認してください");
+    $("#aiImportBg").classList.remove("on"); $("#aiImportText").value="";
+    renderRoutines();
+    alert(made+"件のルーティンを作成しました。各ルーティンの✎から内容を調整できます");
+  }catch(e){ alert("エラー: "+e.message); }
+  btn.disabled=false; btn.textContent="AIで作成";
 }
 
 /* ===== 初期化 ===== */
